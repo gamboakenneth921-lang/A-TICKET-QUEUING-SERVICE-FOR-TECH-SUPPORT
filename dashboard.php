@@ -1,206 +1,391 @@
 <?php
 session_start();
+require 'db.php';
 
 if(!isset($_SESSION['user_id'])){
     header("Location: login.php");
     exit();
 }
-?>
 
+$result = mysqli_query($conn,
+"SELECT * FROM tickets ORDER BY created_at DESC");
+
+$EmpResult = mysqli_query($conn,
+"SELECT * FROM employees");
+
+//show result of all available staffs
+
+$availableCount = mysqli_query($conn,
+"SELECT COUNT(*) as total FROM employees WHERE status='Available'");
+
+$availableStaff = mysqli_fetch_assoc($availableCount);
+
+
+//shows results of tickets
+$alltickets = mysqli_query($conn,
+"SELECT COUNT(*) as all_total FROM tickets WHERE status='Pending'");
+
+$availableTicket = mysqli_fetch_assoc($alltickets);
+
+
+$assignedTickets = mysqli_query($conn,
+"SELECT *  FROM tickets WHERE status='Assigned'");
+
+//$assignedAvailableTickets = mysqli_fetch_assoc($assignedTickets);
+
+
+
+
+//$Employee_result = mysqli_query($conn,
+//"SELECT * FROM employees");
+
+
+
+
+
+
+?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Tickets</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        :root{--bg:#f4f7fb;--card:#fff;--muted:#6b7280;--accent:#2563eb;--ok:#16a34a;--danger:#dc2626}
-        *{box-sizing:border-box}
-        body{margin:0;font-family:Segoe UI, Roboto, Arial, sans-serif;background:var(--bg);color:#0b1220}
+    <title>Dashboard</title>
+<style>
 
-        header{background:linear-gradient(90deg,#0ea5e9,#6366f1);color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
-        header h1{margin:0;font-size:18px}
-        header .actions{font-size:14px;opacity:.95}
+   .header{
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    padding:18px;
+    background:white;
+    box-shadow:0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom:20px;
+}
 
-        .wrap{max-width:1200px;margin:20px auto;padding:0 16px;display:grid;grid-template-columns:380px 1fr 300px;gap:18px}
+.header h1{
+    margin:0;
+}
 
-        .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(12,20,40,0.06)}
+.header p{
+    margin-top:6px;
+    color:#64748b;
+}
+body{
+    background:#f1f5f9;
+    font-family:Segoe UI, sans-serif;
+}
 
-        /* Left - Tickets */
-        .tickets .controls{display:flex;gap:8px;margin-bottom:12px}
-        .tickets .controls input, .tickets .controls select{flex:1;padding:10px;border-radius:8px;border:1px solid #eef2f7}
-        .ticket{display:block;padding:12px;border-radius:10px;border:1px solid #f1f5f9;margin-bottom:10px;text-decoration:none;color:inherit}
-        .ticket:hover{box-shadow:0 8px 20px rgba(99,102,241,0.06)}
-        .ticket .top{display:flex;justify-content:space-between;align-items:center}
-        .title{font-weight:600}
-        .meta{font-size:13px;color:var(--muted)}
-        .badge{padding:6px 10px;border-radius:999px;color:#fff;font-size:12px}
-        .high{background:#ef4444}
-        .medium{background:#f59e0b}
-        .low{background:#10b981}
+.box-container{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    padding:20px;
+}
 
-        /* Center - Details (static) */
-        .details h2{margin-top:0}
-        .details .desc{background:#fafbff;padding:12px;border-radius:8px;border:1px solid #eef2ff}
-        .details .assign{display:flex;gap:8px;margin-top:12px}
-        .details .assign select{flex:1;padding:10px;border-radius:8px;border:1px solid #eef2f7}
-        .btn{background:var(--accent);color:#fff;padding:10px 14px;border-radius:8px;border:none;cursor:pointer}
+.box{
+    width:220px;
+    padding:20px;
+    background:white;
+    border:1px solid #e2e8f0;
+    border-radius:14px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.05);
+}
 
-        /* Right - Employees */
-        .employees .emp{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:10px}
-        .status{padding:6px 10px;border-radius:999px;color:#fff;font-size:13px}
-        .available{background:var(--ok)}
-        .busy{background:var(--danger)}
+.box-title{
+    color:#64748b;
+    font-size:14px;
+    margin-bottom:8px;
+}
 
-        footer{max-width:1200px;margin:18px auto;padding:8px 16px;color:var(--muted);font-size:13px}
+.box-number{
+    font-size:30px;
+    font-weight:600;
+    color:#0f172a;
+}
+.dashboard-container{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:20px;
+    padding:20px;
+    background:#f1f5f9;
+    font-family:Segoe UI, sans-serif;
+}
 
-        @media(max-width:1100px){
-            .wrap{grid-template-columns:1fr;padding:0 12px}
-            .employees{order:3}
-        }
-    </style>
+/* Panels */
+.panel{
+    background:white;
+    border:1px solid #e2e8f0;
+    border-radius:14px;
+    padding:18px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.05);
+}
+
+.panel-header{
+    border-bottom:1px solid #e2e8f0;
+    padding-bottom:12px;
+    margin-bottom:15px;
+}
+
+/* Ticket Cards */
+.ticket-card{
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:12px;
+}
+
+.ticket-title{
+    font-weight:600;
+    margin-bottom:6px;
+}
+
+.ticket-meta{
+    font-size:13px;
+    color:#64748b;
+}
+
+.ticket-desc{
+    margin-top:10px;
+    font-size:14px;
+    color:#475569;
+}
+
+/* Employees */
+.employee-card{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:10px;
+}
+
+.emp-name{
+    font-weight:600;
+}
+
+.emp-role{
+    font-size:13px;
+    color:#64748b;
+}
+
+/* Status badges */
+.status{
+    padding:6px 14px;
+    border-radius:999px;
+    font-size:12px;
+    color:white;
+}
+
+.available{
+    background:#22c55e;
+}
+
+.busy{
+    background:#ef4444;
+}
+
+
+
+
+/* Responsive */
+@media(max-width:900px){
+    .dashboard-container{
+        grid-template-columns:1fr;
+    }
+}
+</style>
 </head>
+
 <body>
+
+<div class="header">
     <header>
-        <h1>Tech Support — Admin Dashboard</h1>
-        <div class="actions">Admin view — monitor tickets & assign staff</div>
+        <h1>Tech support dashboard</h1>
+        <p class="h1 p">Monitor and assign support tickets</p>
     </header>
+</div>
 
-    <main class="wrap">
-        <section class="card tickets">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                <strong>Ticket Queue</strong>
-                <span class="meta">4 tickets</span>
+ <div class="box-container">
+
+    <div class="box">
+        <div class="box-title">Pending Tickets</div>
+            <div class="box-number">
+                <?php echo $availableTicket['all_total']; ?>
+            </div>
+        </div>
+
+    <div class="box">
+        <div class="box-title">Assigned Tickets</div>
+        <div class="box-number">3</div>
+    </div>
+
+    <div class="box">
+        <div class="box-title">Available Staff</div>
+        <div class="box-number">
+        <?php echo $availableStaff['total']; ?>
+    </div>
+    </div>
+
+</div>
+
+<div class="dashboard-container">
+
+    <!-- LEFT SIDE — Pending Tickets -->
+    <div class="panel tickets-panel">
+
+    <?php while($row = mysqli_fetch_assoc($result)){ ?>
+
+        <div class="ticket-card" onclick="toggleEmployees(this)">
+
+            <div class="ticket-title">
+                <?php echo $row['title']; ?>
             </div>
 
-            <div class="controls">
-                <input placeholder="Search tickets..." aria-label="search" />
-                <select aria-label="filter">
-                    <option>All statuses</option>
-                    <option>Open</option>
-                    <option>In Progress</option>
-                    <option>Resolved</option>
+            <div class="ticket-meta">
+                <?php echo $row['user_name']; ?> |
+                <?php echo $row['email']; ?>
+            </div>
+
+            <div class="ticket-desc">
+                <?php echo $row['description']; ?>
+            </div>
+
+            <div class="ticket-status">
+                Status: <?php echo $row['status']; ?>
+            </div>
+
+            <!-- Hidden Available Employees -->
+            <div class="employee-popup" style="display:none;">
+
+                <?php
+                $availableEmployees = mysqli_query($conn,
+                "SELECT * FROM employees WHERE status='Available'");
+
+                while($emp = mysqli_fetch_assoc($availableEmployees)){
+                ?>
+
+                    <div class="employee-card">
+                        <div>
+                            <div class="emp-name">
+                                <?php echo $emp['name']; ?>
+                            </div>
+                            <div class="emp-role">
+                                <?php echo $emp['role']; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                <?php } ?>
+
+            </div>
+
+        </div>
+
+    <?php } ?>
+
+</div>
+
+
+
+
+
+
+    <div class="panel employee-panel">
+
+      <div class="card">
+
+        <h3>Add Employee</h3>
+
+        <form method="POST" action="add_employee.php">
+
+            <input type="text" name="name" placeholder="Employee Name" required>
+            <br><br>
+
+            <input type="text" name="role" placeholder="Role / Position" required>
+            <br><br>
+
+                <select name="status">
+                    <option>Available</option>
+                    <option>Busy</option>
+                    <option>Offline</option>
                 </select>
+
+            <br><br>
+
+            <button type="submit">Add Employee</button>
+
+        </form>
+
+        <?php while($emp = mysqli_fetch_assoc($EmpResult)){ ?>
+
+            <div class="ticket-card">
+
+                <div class="ticket-title">
+                    <?php echo $emp['name']; ?>
+                </div>
+
+                <div class="ticket-meta">
+                    <?php echo $emp['role']; ?> |
+                    
+                </div>
+
+                <div class="ticket-status">
+                    Status: <?php echo $emp['status']; ?>
+                </div>
+
             </div>
 
-            <a class="ticket" href="#">
-                <div class="top">
-                    <div>
-                        <div class="title">Cannot connect to VPN</div>
-                        <div class="meta">TCK-1001 • 5h ago</div>
-                    </div>
-                    <div style="text-align:right">
-                        <div class="badge high">High</div>
-                        <div class="meta" style="margin-top:6px">Open</div>
-                    </div>
-                </div>
-                <div class="meta" style="margin-top:10px">User reports VPN fails with authentication error.</div>
-            </a>
+        <?php } ?>
 
-            <a class="ticket" href="#">
-                <div class="top">
-                    <div>
-                        <div class="title">Printer offline on 3rd floor</div>
-                        <div class="meta">TCK-1002 • 1d ago</div>
-                    </div>
-                    <div style="text-align:right">
-                        <div class="badge medium">Medium</div>
-                        <div class="meta" style="margin-top:6px">Open</div>
-                    </div>
-                </div>
-                <div class="meta" style="margin-top:10px">Printer shows offline; restarted but still offline.</div>
-            </a>
+</div>
 
-            <a class="ticket" href="#">
-                <div class="top">
-                    <div>
-                        <div class="title">Email attachments blocked</div>
-                        <div class="meta">TCK-1003 • 2h ago</div>
-                    </div>
-                    <div style="text-align:right">
-                        <div class="badge low">Low</div>
-                        <div class="meta" style="margin-top:6px">In Progress</div>
-                    </div>
-                </div>
-                <div class="meta" style="margin-top:10px">Attachments larger than 5MB blocked in webmail.</div>
-            </a>
 
-            <a class="ticket" href="#">
-                <div class="top">
-                    <div>
-                        <div class="title">Blue screen on startup</div>
-                        <div class="meta">TCK-1004 • 3d ago</div>
-                    </div>
-                    <div style="text-align:right">
-                        <div class="badge high">High</div>
-                        <div class="meta" style="margin-top:6px">Open</div>
-                    </div>
-                </div>
-                <div class="meta" style="margin-top:10px">Laptop shows BSOD intermittently.</div>
-            </a>
-        </section>
+</div>
 
-        <section class="card details">
-            <h2>Ticket details</h2>
-            <div class="meta" style="margin-bottom:8px">Select a ticket to view more details (static preview)</div>
 
-            <div class="desc">
-                <strong>Title:</strong>
-                <div style="margin-top:6px;font-weight:600">Cannot connect to VPN • TCK-1001</div>
-                <div class="meta" style="margin-top:6px">Created: 2026-03-01 09:15</div>
-                <div style="margin-top:12px"><strong>Description</strong>
-                    <p class="meta" style="margin-top:6px">User reports VPN fails with authentication error. Occurs on Windows 10 and macOS. Ticket is high priority because many remote users are blocked.</p>
-                </div>
-            </div>
 
-            <div style="margin-top:12px">
-                <label class="meta">Assign to</label>
-                <div class="assign">
-                    <select aria-label="assign">
-                        <option>Alice Johnson — Network Tech (E-1)</option>
-                        <option>Charlie Lee — Hardware Tech (E-3)</option>
-                    </select>
-                    <button class="btn">Assign</button>
-                </div>
-                <div class="meta" style="margin-top:8px">(This is a static demo — assignment is non-functional without JavaScript/backend)</div>
-            </div>
-        </section>
+<div class="panel Assigned-Tickets">
+    <?php while($rows = mysqli_fetch_assoc($assignedTickets)){ ?>
+    <div class="assigned-card">
+        <div class="ticket-title">
+            <?php echo $rows['title']; ?>
+        </div>
 
-        <aside class="card employees">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                <strong>Employees</strong>
-                <span class="meta">Availability</span>
-            </div>
+        <div class="ticket-meta">
+            <?php echo $rows['user_name']; ?> |
+        </div>
 
-            <div class="emp">
-                <div>
-                    <div style="font-weight:600">Alice Johnson</div>
-                    <div class="meta">Network Tech • E-1</div>
-                </div>
-                <div class="status available">Available</div>
-            </div>
+        <div class="ticket-status">
+            Status: <?php echo $rows['description']; ?>
+        </div>
+       
+    </div>
+    <?php } ?>
 
-            <div class="emp">
-                <div>
-                    <div style="font-weight:600">Bob Smith</div>
-                    <div class="meta">Software Support • E-2</div>
-                </div>
-                <div class="status busy">Busy</div>
-            </div>
 
-            <div class="emp">
-                <div>
-                    <div style="font-weight:600">Charlie Lee</div>
-                    <div class="meta">Hardware Tech • E-3</div>
-                </div>
-                <div class="status available">Available</div>
-            </div>
+</div>
 
-        </aside>
-    </main>
 
-    <footer>Static HTML/CSS demo for admin dashboard — no JavaScript included.</footer>
+<script>
+function toggleEmployees(card) {
+
+    let popup = card.querySelector(".employee-popup");
+
+    if (popup.style.display === "none") {
+        popup.style.display = "block";
+    } else {
+        popup.style.display = "none";
+    }
+
+}
+</script>
+
+
+
+
+
 </body>
 </html>
